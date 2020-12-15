@@ -16,11 +16,15 @@ namespace Elsa.Activities.MassTransit
             var optionsBuilder = services.AddOptions<TOptions>();
             Options?.Invoke(optionsBuilder);
 
-            return services.AddMassTransit(CreateBus, ConfigureMassTransit);
+
+            //return services.AddMassTransit(CreateBus, ConfigureMassTransit);
+
+            return services.AddMassTransit(ConfigureMassTransit)
+                .AddMassTransitHostedService();
         }
 
-        protected abstract void ConfigureMassTransit(IServiceCollectionConfigurator configurator);
-        protected abstract IBusControl CreateBus(IServiceProvider serviceProvider);
+        protected abstract void ConfigureMassTransit(IServiceCollectionBusConfigurator configurator);
+        //protected abstract IBusControl CreateBus(IServiceProvider serviceProvider);
 
         public Action<OptionsBuilder<TOptions>> Options { get; set; }
     }

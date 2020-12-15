@@ -63,7 +63,8 @@ namespace Elsa.Activities.MassTransit.Extensions
             return services
                 .AddActivity<PublishMassTransitMessage>()
                 .AddActivity<ReceiveMassTransitMessage>()
-                .AddActivity<SendMassTransitMessage>();
+                .AddActivity<SendMassTransitMessage>()
+                .AddActivity<RequestMassTransitMessage>();
         }
     }
 }

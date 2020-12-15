@@ -8,6 +8,7 @@ using Elsa.Results;
 using Elsa.Services;
 using Elsa.Services.Models;
 using MassTransit;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Elsa.Activities.MassTransit.Activities
@@ -46,9 +47,13 @@ namespace Elsa.Activities.MassTransit.Activities
         {
             var tokenId = (Guid)await evaluator.EvaluateAsync(TokenId, typeof(Guid), context, cancellationToken);
 
-            var endpoint = await SendEndpointProvider.GetSendEndpoint(options.SchedulerAddress);
+            var schedueler = context.ServiceProvider.GetRequiredService<IMessageScheduler>();
 
-            await endpoint.CancelScheduledSend(tokenId);
+
+            //var endpoint = await SendEndpointProvider.GetSendEndpoint(options.SchedulerAddress);
+
+            
+            await schedueler.CancelScheduledSend(options.SchedulerAddress, tokenId);
 
             return Done();
         }

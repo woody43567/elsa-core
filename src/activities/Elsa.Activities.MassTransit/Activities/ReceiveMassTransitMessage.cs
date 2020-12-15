@@ -15,23 +15,23 @@ namespace Elsa.Activities.MassTransit.Activities
     )]
     public class ReceiveMassTransitMessage : Activity
     {
-        public static Type GetMessageType(JObject state)
+        public static string GetMessageType(JObject state)
         {
-            var typeName = state.GetState<string>(nameof(MessageType));
-            return string.IsNullOrWhiteSpace(typeName) ? null : System.Type.GetType(typeName);
+            return state.GetState<string>(nameof(MessageType));
+            
         }
 
         [ActivityProperty(Hint = "The assembly-qualified type name of the message to receive.")]
-        public Type MessageType
+        public string MessageType
         {
             get => GetMessageType(State);
-            set => SetState(value.AssemblyQualifiedName);
+            set => SetState(value);
         }
 
         protected override bool OnCanExecute(WorkflowExecutionContext context)
         {
             var messageTypeName = context.Workflow.Input.GetVariable(Constants.MessageTypeNameInputKey);
-            var messageInputType = System.Type.GetType(messageTypeName.ToString());
+            var messageInputType = messageTypeName.ToString();
             var messageType = MessageType;
             
             return messageInputType != null && messageType != null && messageInputType == messageType;

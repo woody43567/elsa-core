@@ -9,7 +9,7 @@ using MassTransit;
 
 namespace Elsa.Activities.MassTransit.Consumers
 {
-    public class WorkflowConsumer<T> : IConsumer<T> where T : class
+    public class WorkflowConsumer<T> : IConsumer<T> where T :  class
     {
         private static readonly IList<ICorrelationIdSelector<T>> CorrelationIdSelectors = new ICorrelationIdSelector<T>[]
         {
@@ -32,8 +32,10 @@ namespace Elsa.Activities.MassTransit.Consumers
             var activityType = nameof(ReceiveMassTransitMessage);
             var input = new Variables();
 
+            var msgType = context.Message.GetType().FullName;
+
             input.SetVariable(Constants.MessageInputKey, message);
-            input.SetVariable(Constants.MessageTypeNameInputKey, typeof(T).AssemblyQualifiedName);
+            input.SetVariable(Constants.MessageTypeNameInputKey, msgType);
 
             Guid? correlationId = default;
             foreach (var item in CorrelationIdSelectors)
@@ -42,11 +44,13 @@ namespace Elsa.Activities.MassTransit.Consumers
                     break;
             }
 
+
+
             await workflowInvoker.TriggerAsync(
                 activityType,
                 input,
                 correlationId?.ToString(),
-                x => ReceiveMassTransitMessage.GetMessageType(x) == message.GetType(),
+                x => string.Compare( ReceiveMassTransitMessage.GetMessageType(x), msgType, true) == 0,
                 context.CancellationToken);
         }
     }
