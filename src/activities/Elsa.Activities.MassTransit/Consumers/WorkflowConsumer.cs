@@ -44,14 +44,17 @@ namespace Elsa.Activities.MassTransit.Consumers
                     break;
             }
 
-
+            
+            
 
             await workflowInvoker.TriggerAsync(
                 activityType,
                 input,
                 correlationId?.ToString(),
-                x => string.Compare( ReceiveMassTransitMessage.GetMessageType(x), msgType, true) == 0,
+                x =>  string.Compare( ReceiveMassTransitMessage.GetMessageType(x), msgType, true) == 0,
                 context.CancellationToken);
+            
+
         }
     }
 }

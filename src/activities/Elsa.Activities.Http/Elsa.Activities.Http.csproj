@@ -19,6 +19,9 @@
         <RepositoryType>GitHub</RepositoryType>
         <PackageTags>elsa, workflows, http</PackageTags>
         <PackageIcon>icon.png</PackageIcon>
+        <Version>1.5.3.1370</Version>
+        <AssemblyVersion>1.5.3.1370</AssemblyVersion>
+        <FileVersion>1.5.3.1370</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>

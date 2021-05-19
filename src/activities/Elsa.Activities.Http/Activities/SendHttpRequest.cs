@@ -30,7 +30,7 @@ namespace Elsa.Activities.Http.Activities
     public class SendHttpRequest : Activity
     {
         private readonly IWorkflowExpressionEvaluator expressionEvaluator;
-        private readonly HttpClient httpClient;
+        private readonly IHttpClientFactory httpClientFactory;
         private readonly IEnumerable<IHttpResponseBodyParser> parsers;
 
         public SendHttpRequest(
@@ -39,7 +39,7 @@ namespace Elsa.Activities.Http.Activities
             IEnumerable<IHttpResponseBodyParser> parsers)
         {
             this.expressionEvaluator = expressionEvaluator;
-            httpClient = httpClientFactory.CreateClient(nameof(SendHttpRequest));
+            this.httpClientFactory = httpClientFactory;
             this.parsers = parsers;
         }
 
@@ -113,6 +113,16 @@ namespace Elsa.Activities.Http.Activities
             set => SetState(value);
         }
 
+        [ActivityProperty(
+            Type = ActivityPropertyTypes.Text,
+            Hint = "The name of a registered http client to use (if applicable)."
+        )]        
+        public string NamedClient
+        {
+            get => GetState<string>();
+            set => SetState(value);
+        }
+
         /// <summary>
         /// The headers to send along with the request.
         /// </summary>
@@ -148,6 +158,10 @@ namespace Elsa.Activities.Http.Activities
             CancellationToken cancellationToken)
         {
             var request = await CreateRequestAsync(workflowContext, cancellationToken);
+
+            var httpClientName = NamedClient;
+
+            var httpClient = httpClientFactory.CreateClient(string.IsNullOrWhiteSpace(httpClientName) ? nameof(SendHttpRequest) : httpClientName);
             var response = await httpClient.SendAsync(request, cancellationToken);
             var hasContent = response.Content != null;
             var contentType = response.Content?.Headers.ContentType.MediaType;

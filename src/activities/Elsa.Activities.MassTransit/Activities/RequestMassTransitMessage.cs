@@ -23,8 +23,8 @@ namespace Elsa.Activities.MassTransit.Activities
     public class RequestMassTransitMessage : MassTransitBusActivity
     {
         private readonly IWorkflowExpressionEvaluator evaluator;
-        private readonly IClientFactory clientFactory;
-        private readonly IBus bus;
+        private readonly IClientFactory _clientFactory;
+        private readonly IBus _bus;
         private readonly IServiceProvider serviceProvider;
         private readonly IDocumentStore _documentStore;
 
@@ -32,8 +32,8 @@ namespace Elsa.Activities.MassTransit.Activities
             : base(bus, consumeContext)
         {
             this.evaluator = evaluator;
-            this.clientFactory = clientFactory;
-            this.bus = bus;
+            this._clientFactory = clientFactory;
+            this._bus = bus;
             this.serviceProvider = serviceProvider;
             _documentStore = documentStore;
         }
@@ -126,23 +126,23 @@ namespace Elsa.Activities.MassTransit.Activities
                     {
                         mi = typeof(IClientFactory).GetGenericMethod("CreateRequest", new Type[] { MessageType, typeof(CancellationToken), typeof(RequestTimeout) });
                         createdMethod = mi.MakeGenericMethod(MessageType);
-                        rh = (RequestHandle)createdMethod.Invoke(clientFactory, new object[] { message, cancellationToken, RequestTimeout.After(m: 5) });
+                        rh = (RequestHandle)createdMethod.Invoke(_clientFactory, new object[] { message, cancellationToken, RequestTimeout.After(m: 5) });
                     }
                     else
                     {
                         mi = typeof(IClientFactory).GetGenericMethod("CreateRequest", new Type[] { typeof(Uri), MessageType, typeof(CancellationToken), typeof(RequestTimeout) });
                         createdMethod = mi.MakeGenericMethod(MessageType);
-                        rh = (RequestHandle)createdMethod.Invoke(clientFactory, new object[] { EndpointAddress, message, cancellationToken, RequestTimeout.After(m: 5) });
+                        rh = (RequestHandle)createdMethod.Invoke(_clientFactory, new object[] { EndpointAddress, message, cancellationToken, RequestTimeout.After(m: 5) });
                     }
                 }
 
                  mi = typeof(RequestHandle).GetGenericMethod("GetResponse", new Type[] { typeof(bool) });
 
-                createdMethod = mi.MakeGenericMethod(ResponseMessageType);
+                createdMethod = mi.MakeGenericMethod(ResponseMessageType ?? typeof(object));
 
                 var t = (Task)createdMethod.Invoke(rh, new object[] { true });
 
-                await t.ConfigureAwait(true);
+                await t.ConfigureAwait(false);
 
                 
                 var resultProperty = t.GetType().GetProperty("Result");
@@ -194,66 +194,6 @@ namespace Elsa.Activities.MassTransit.Activities
             }
 
             
-
-            //var mi = typeof(IClientFactory).GetGenericMethod("CreateRequest", new Type[] { MessageType, typeof(CancellationToken), typeof(RequestTimeout) });
-            //var createdMethod = mi.MakeGenericMethod(MessageType);
-
-            //using (RequestHandle rh = (RequestHandle)createdMethod.Invoke(clientFactory, new object[] { message, cancellationToken, RequestTimeout.None }))
-            //{
-
-            //    mi = typeof(RequestHandle).GetGenericMethod("GetResponse", new Type[] { typeof(bool) });
-
-            //    createdMethod = mi.MakeGenericMethod(ResponseMessageType);
-
-            //    var t = (Task) createdMethod.Invoke(rh, new object[] { true });
-
-            //    await t.ConfigureAwait(true);
-
-            //    var resultProperty = t.GetType().GetProperty("Result");
-
-            //    context.SetLastResult(resultProperty);
-
-            //}
-
-            //if (o is RequestHandle rh)
-            //{
-            //    var r = await rh.GetResponse<dynamic>();
-
-
-            //    context.SetLastResult(r);
-
-            //}
-            //else
-            //{
-            //    mi = o.GetType().GetGenericMethod("GetResponse", new Type[] { typeof(bool) });
-            //    var responseMethod = mi.MakeGenericMethod(ResponseMessageType);
-
-            //    var response = await (Task<dynamic>)responseMethod.Invoke(o, new object[] { true });
-
-
-            //    context.SetLastResult(response);
-
-            //}
-
-
-
-            //if ( o is IDisposable id )
-            //{
-            //    id.Dispose();
-            //}
-
-
-
-
-            //if (EndpointAddress != null)
-            //{
-            //    var endpoint = await SendEndpointProvider.GetSendEndpoint(EndpointAddress);
-            //    await endpoint.Send(message, cancellationToken);
-            //}
-            //else
-            //{
-            //    await SendEndpointProvider.Send(message, cancellationToken);
-            //}
 
             return Done();
         }

@@ -8,6 +8,7 @@ namespace Elsa.Activities.MassTransit.Activities
     {
         private readonly ConsumeContext consumeContext;
         private readonly IBus bus;
+        
 
         protected MassTransitBusActivity(IBus bus, ConsumeContext consumeContext)
         {
