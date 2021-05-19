@@ -116,7 +116,7 @@ namespace Elsa.Activities.Http.Activities
         [ActivityProperty(
             Type = ActivityPropertyTypes.Text,
             Hint = "The name of a registered http client to use (if applicable)."
-        )]        
+        )]
         public string NamedClient
         {
             get => GetState<string>();
@@ -140,6 +140,13 @@ namespace Elsa.Activities.Http.Activities
             set => SetState(value);
         }
 
+        [ActivityProperty(Hint = "Check to read the content of the response as text.")]
+        public bool ReadResponseAsText
+        {
+            get => GetState(() => false);
+            set => SetState(value);
+        }
+
         /// <summary>
         /// A list of HTTP status codes this activity can handle.
         /// </summary>
@@ -157,35 +164,61 @@ namespace Elsa.Activities.Http.Activities
             WorkflowExecutionContext workflowContext,
             CancellationToken cancellationToken)
         {
-            var request = await CreateRequestAsync(workflowContext, cancellationToken);
+            HttpResponseMessage response = null;
 
-            var httpClientName = NamedClient;
-
-            var httpClient = httpClientFactory.CreateClient(string.IsNullOrWhiteSpace(httpClientName) ? nameof(SendHttpRequest) : httpClientName);
-            var response = await httpClient.SendAsync(request, cancellationToken);
-            var hasContent = response.Content != null;
-            var contentType = response.Content?.Headers.ContentType.MediaType;
-
-            var responseModel = new HttpResponseModel
+            try
             {
-                StatusCode = response.StatusCode,
-                Headers = new Dictionary<string, string[]>(
-                    response.Headers.ToDictionary(x => x.Key, x => x.Value.ToArray())
-                )
-            };
 
-            if (hasContent && ReadContent)
-            {
-                var formatter = SelectContentParser(contentType);
 
-                responseModel.Content = await formatter.ParseAsync(response, cancellationToken);
+                using (var request = await CreateRequestAsync(workflowContext, cancellationToken))
+                {
+
+                    var httpClientName = NamedClient;
+
+                    var httpClient = httpClientFactory.CreateClient(string.IsNullOrWhiteSpace(httpClientName)
+                        ? nameof(SendHttpRequest)
+                        : httpClientName);
+
+                    response = await httpClient.SendAsync(request, cancellationToken);
+                }
+
+                var hasContent = response.Content != null;
+                var contentType = response.Content?.Headers.ContentType.MediaType;
+
+                var responseModel = new HttpResponseModel
+                {
+                    StatusCode = response.StatusCode,
+                    Headers = new Dictionary<string, string[]>(
+                        response.Headers.ToDictionary(x => x.Key, x => x.Value.ToArray())
+                    )
+                };
+
+                if (hasContent && ReadContent)
+                {
+                    if (ReadResponseAsText)
+                    {
+                        responseModel.Content = await response.Content.ReadAsStringAsync();
+                    }
+                    else
+                    {
+                        var formatter = SelectContentParser(contentType);
+
+                        responseModel.Content = await formatter.ParseAsync(response, cancellationToken);
+                    }
+                }
+
+
+                workflowContext.SetLastResult(Output.SetVariable("Response", responseModel));
+
+                var statusEndpoint = ((int)response.StatusCode).ToString();
+
+
+                return Outcomes(new[] { OutcomeNames.Done, statusEndpoint });
             }
-
-            workflowContext.SetLastResult(Output.SetVariable("Response", responseModel));
-
-            var statusEndpoint = ((int)response.StatusCode).ToString();
-
-            return Outcomes(new[] { OutcomeNames.Done, statusEndpoint });
+            finally
+            {
+                response?.Dispose();
+            }
         }
 
         private IHttpResponseBodyParser SelectContentParser(string contentType)
@@ -271,7 +304,7 @@ namespace Elsa.Activities.Http.Activities
 
         private bool GetMethodSupportsBody(string method)
         {
-            var methods = new[] { "POST", "PUT", "PATCH", "DELETE" };
+            var methods = new[] { "POST", "PUT", "PATCH", "DELETE", "GET" };
             return methods.Contains(method, StringComparer.InvariantCultureIgnoreCase);
         }
     }
